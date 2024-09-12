@@ -46,6 +46,10 @@ func processReqeust(ctx context.Context) {
 	}
 }
 
+func processQueue(ctx context.Context) {
+	// todo read from queue and process messages
+}
+
 func overflowToQueue(body string) error {
 	log.Println("overflowing, sending body to queue", body)
 	// todo write to external queue
@@ -53,8 +57,11 @@ func overflowToQueue(body string) error {
 }
 
 func main() {
-	go processReqeust(context.Background()) // Start the goroutine to process the channel
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
+	go processReqeust(ctx) // Start the goroutine to process the channel
+	go processQueue(ctx)   // start the goroute to process the overflow queue ( doesn't need to be in this app )
 	http.HandleFunc("/process", processHandler)
 	log.Println("Starting server on :8080")
 	if err := http.ListenAndServe(":8080", nil); err != nil {
