@@ -9,9 +9,9 @@ import (
 	"time"
 )
 
-var overflowChannel = make(chan string, 10) // Buffered channel with capacity of 10
+var process = make(chan string, 10) // Buffered channel with capacity of 10
 
-func overflowHandler(w http.ResponseWriter, r *http.Request) {
+func processHandler(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, "failed to read request body", http.StatusInternalServerError)
@@ -20,7 +20,7 @@ func overflowHandler(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
 	select {
-	case overflowChannel <- string(body):
+	case process <- string(body):
 		log.Println("request added to the channel!")
 	default:
 		log.Println("channel is full, request not added.")
@@ -35,7 +35,7 @@ func overflowHandler(w http.ResponseWriter, r *http.Request) {
 func processReqeust(ctx context.Context) {
 	for {
 		select {
-		case msg := <-overflowChannel:
+		case msg := <-process:
 			log.Println("Processing:", msg)
 			// fake work!
 			time.Sleep(5 * time.Second)
@@ -55,7 +55,7 @@ func overflowToQueue(body string) error {
 func main() {
 	go processReqeust(context.Background()) // Start the goroutine to process the channel
 
-	http.HandleFunc("/overflow", overflowHandler)
+	http.HandleFunc("/process", processHandler)
 	log.Println("Starting server on :8080")
 	if err := http.ListenAndServe(":8080", nil); err != nil {
 		log.Println("Server failed to start:", err)
